@@ -153,6 +153,7 @@ const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 let items = [];
 let userName = localStorage.getItem('wl_name') || '';
+let isEditing = false;
 
 function init() {
   if (!userName) document.getElementById('modal').classList.add('open');
@@ -171,6 +172,7 @@ function saveName() {
 }
 
 async function loadItems() {
+  if (isEditing) return;
   const { data, error } = await db.from('watchlist').select('*').order('created_at', { ascending: false });
   if (!error) { items = data; render(); }
 }
@@ -196,6 +198,7 @@ async function updateNote(id, note) {
 }
 
 function editNote(id) {
+  isEditing = true;
   document.getElementById('text-' + id).style.display = 'none';
   const ta = document.getElementById('ta-' + id);
   ta.style.display = 'block';
@@ -203,6 +206,7 @@ function editNote(id) {
 }
 
 function blurNote(id) {
+  isEditing = false;
   const ta = document.getElementById('ta-' + id);
   const text = document.getElementById('text-' + id);
   const val = ta.value.trim();
