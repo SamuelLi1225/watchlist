@@ -76,7 +76,7 @@
   .name-tag:hover { border-color: var(--border2); color: var(--text); }
 
   main {
-    max-width: 640px;
+    max-width: 1100px;
     margin: 0 auto;
     padding: 32px 24px;
   }
@@ -152,7 +152,7 @@
     margin-bottom: 12px;
   }
 
-  .list { display: flex; flex-direction: column; gap: 1px; }
+  .list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 
   .item {
     background: var(--surface);
@@ -297,6 +297,16 @@
     header { padding: 14px 16px; }
     .add-block { flex-wrap: wrap; }
     #ticker-in { width: 80px; }
+    .list { grid-template-columns: 1fr; }
+  }
+  .hero-title {
+    font-family: var(--font-mono);
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.03em;
+    padding: 40px 0 32px;
+    text-align: center;
   }
 </style>
 </head>
@@ -312,7 +322,7 @@
 </div>
 
 <header>
-  <div class="logo">swing ideas</div>
+  <div class="logo">watchlist</div>
   <div class="header-right">
     <span class="count-badge" id="count"></span>
     <span class="name-tag" id="name-tag" onclick="document.getElementById('modal').classList.add('open')">—</span>
@@ -321,6 +331,7 @@
 
 
 <main>
+  <h1 class="hero-title">stocks to look at</h1>
   <div class="add-block">
     <input type="text" id="ticker-in" placeholder="TICKER" maxlength="8" />
     <div class="divider-v"></div>
