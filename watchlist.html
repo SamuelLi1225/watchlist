@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Watchlist</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0d0d;
+    --surface: #141414;
+    --surface2: #1a1a1a;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #f0f0f0;
+    --muted: #666;
+    --accent: #c8f135;
+    --accent-dim: rgba(200,241,53,0.1);
+    --red: #ff4d4d;
+    --font-mono: 'SF Mono', 'Fira Code', 'Fira Mono', monospace;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 10;
+  }
+
+  .logo {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .count-badge {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+  }
+
+  .name-tag {
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .name-tag:hover { border-color: var(--border2); color: var(--text); }
+
+  main {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 32px 24px;
+  }
+
+  .add-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 28px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .add-block input {
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+  }
+
+  #ticker-in {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 600;
+    width: 90px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  #ticker-in::placeholder { color: var(--muted); font-weight: 400; }
+
+  .divider-v {
+    width: 1px;
+    height: 18px;
+    background: var(--border2);
+    flex-shrink: 0;
+  }
+
+  #note-in {
+    flex: 1;
+    color: var(--text);
+  }
+  #note-in::placeholder { color: var(--muted); }
+
+  .add-btn {
+    background: var(--accent);
+    color: #0d0d0d;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: opacity 0.15s;
+    font-family: var(--font);
+  }
+  .add-btn:hover { opacity: 0.85; }
+  .add-btn:active { transform: scale(0.97); }
+
+  .section-label {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    margin-bottom: 12px;
+  }
+
+  .list { display: flex; flex-direction: column; gap: 1px; }
+
+  .item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 6px;
+    transition: border-color 0.15s;
+  }
+  .item:hover { border-color: var(--border2); }
+
+  .ticker {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    min-width: 72px;
+    letter-spacing: 0.04em;
+    padding-top: 1px;
+    flex-shrink: 0;
+  }
+
+  .item-body { flex: 1; min-width: 0; }
+
+  .note-text {
+    font-size: 13px;
+    color: #aaa;
+    line-height: 1.5;
+    cursor: pointer;
+    word-break: break-word;
+    min-height: 18px;
+  }
+  .note-text:empty::after { content: 'add a note...'; color: var(--muted); }
+  .note-text:hover { color: var(--text); }
+
+  .note-textarea {
+    display: none;
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 13px;
+    font-family: var(--font);
+    color: var(--text);
+    resize: none;
+    min-height: 52px;
+    line-height: 1.5;
+    outline: none;
+  }
+  .note-textarea:focus { border-color: rgba(200,241,53,0.3); }
+
+  .meta {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 5px;
+    font-family: var(--font-mono);
+  }
+
+  .del-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    padding: 0;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s;
+    flex-shrink: 0;
+  }
+  .item:hover .del-btn { opacity: 1; }
+  .del-btn:hover { color: var(--red); }
+
+  .empty {
+    text-align: center;
+    padding: 60px 0;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .empty span { display: block; font-size: 28px; margin-bottom: 10px; }
+
+  .loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 13px;
+  }
+
+  /* name modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 14px;
+    padding: 24px;
+    width: 320px;
+  }
+  .modal h3 { font-size: 15px; font-weight: 500; margin-bottom: 6px; }
+  .modal p { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+  .modal input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 14px;
+    color: var(--text);
+    font-family: var(--font);
+    outline: none;
+    margin-bottom: 12px;
+  }
+  .modal input:focus { border-color: rgba(200,241,53,0.4); }
+  .modal-btn {
+    width: 100%;
+    background: var(--accent);
+    color: #0d0d0d;
+    border: none;
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font);
+  }
+
+  @media (max-width: 480px) {
+    main { padding: 20px 16px; }
+    header { padding: 14px 16px; }
+    .add-block { flex-wrap: wrap; }
+    #ticker-in { width: 80px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3>who are you?</h3>
+    <p>just so we know who added each ticker</p>
+    <input type="text" id="name-input" placeholder="your name" maxlength="20" />
+    <button class="modal-btn" onclick="saveName()">let's go</button>
+  </div>
+</div>
+
+<header>
+  <div class="logo">watchlist</div>
+  <div class="header-right">
+    <span class="count-badge" id="count"></span>
+    <span class="name-tag" id="name-tag" onclick="document.getElementById('modal').classList.add('open')">—</span>
+  </div>
+</header>
+
+<main>
+  <div class="add-block">
+    <input type="text" id="ticker-in" placeholder="TICKER" maxlength="8" />
+    <div class="divider-v"></div>
+    <input type="text" id="note-in" placeholder="note..." />
+    <button class="add-btn" onclick="addItem()">add</button>
+  </div>
+
+  <div class="section-label" id="section-label"></div>
+  <div id="list"><div class="loading">loading...</div></div>
+</main>
+
+<script>
+const SUPABASE_URL = 'https://ftarlcrepnmapkqubsbf.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_2zrwc9hZVCoX5k08k_PJ9A_BHdju7dY';
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let items = [];
+let userName = localStorage.getItem('wl_name') || '';
+
+function init() {
+  if (!userName) {
+    document.getElementById('modal').classList.add('open');
+  } else {
+    document.getElementById('name-tag').textContent = userName;
+  }
+  loadItems();
+  subscribeRealtime();
+}
+
+function saveName() {
+  const v = document.getElementById('name-input').value.trim();
+  if (!v) return;
+  userName = v;
+  localStorage.setItem('wl_name', v);
+  document.getElementById('name-tag').textContent = v;
+  document.getElementById('modal').classList.remove('open');
+}
+
+async function loadItems() {
+  const { data, error } = await db
+    .from('watchlist')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (!error) { items = data; render(); }
+}
+
+function subscribeRealtime() {
+  db.channel('watchlist_changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'watchlist' }, () => {
+      loadItems();
+    })
+    .subscribe();
+}
+
+async function addItem() {
+  const t = document.getElementById('ticker-in').value.trim().toUpperCase();
+  const n = document.getElementById('note-in').value.trim();
+  if (!t) { document.getElementById('ticker-in').focus(); return; }
+  const { error } = await db.from('watchlist').insert({ ticker: t, note: n, added_by: userName });
+  if (!error) {
+    document.getElementById('ticker-in').value = '';
+    document.getElementById('note-in').value = '';
+    document.getElementById('ticker-in').focus();
+  }
+}
+
+async function removeItem(id) {
+  await db.from('watchlist').delete().eq('id', id);
+}
+
+async function updateNote(id, note) {
+  await db.from('watchlist').update({ note }).eq('id', id);
+}
+
+function editNote(id) {
+  const text = document.getElementById(`text-${id}`);
+  const ta = document.getElementById(`ta-${id}`);
+  text.style.display = 'none';
+  ta.style.display = 'block';
+  ta.focus();
+  ta.setSelectionRange(ta.value.length, ta.value.length);
+}
+
+function blurNote(id) {
+  const text = document.getElementById(`text-${id}`);
+  const ta = document.getElementById(`ta-${id}`);
+  const val = ta.value.trim();
+  updateNote(id, val);
+  text.textContent = val;
+  text.style.display = 'block';
+  ta.style.display = 'none';
+}
+
+function noteKey(e, id) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); blurNote(id); }
+  if (e.key === 'Escape') {
+    const text = document.getElementById(`text-${id}`);
+    const ta = document.getElementById(`ta-${id}`);
+    ta.style.display = 'none';
+    text.style.display = 'block';
+  }
+}
+
+function timeAgo(ts) {
+  const diff = Date.now() - new Date(ts).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h/24)}d ago`;
+}
+
+function render() {
+  const list = document.getElementById('list');
+  const count = document.getElementById('count');
+  const label = document.getElementById('section-label');
+  count.textContent = items.length ? `${items.length} watching` : '';
+  label.textContent = items.length ? `${items.length} ticker${items.length !== 1 ? 's' : ''}` : '';
+  if (!items.length) {
+    list.innerHTML = '<div class="empty"><span>📋</span>nothing yet — add a ticker above</div>';
+    return;
+  }
+  list.innerHTML = items.map(it => `
+    <div class="item" id="item-${it.id}">
+      <div class="ticker">${it.ticker}</div>
+      <div class="item-body">
+        <div class="note-text" id="text-${it.id}" onclick="editNote('${it.id}')">${it.note || ''}</div>
+        <textarea class="note-textarea" id="ta-${it.id}" onblur="blurNote('${it.id}')" onkeydown="noteKey(event,'${it.id}')">${it.note || ''}</textarea>
+        <div class="meta">${it.added_by ? it.added_by + ' · ' : ''}${timeAgo(it.created_at)}</div>
+      </div>
+      <button class="del-btn" onclick="removeItem('${it.id}')" title="remove">×</button>
+    </div>
+  `).join('');
+}
+
+document.getElementById('ticker-in').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('note-in').focus();
+});
+document.getElementById('note-in').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addItem();
+});
+document.getElementById('name-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') saveName();
+});
+
+init();
+</script>
+</body>
+</html>
