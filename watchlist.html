@@ -368,11 +368,7 @@ async function loadItems() {
 }
 
 function subscribeRealtime() {
-  db.channel('watchlist_changes')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'watchlist' }, () => {
-      loadItems();
-    })
-    .subscribe();
+  setInterval(loadItems, 1000);
 }
 
 async function addItem() {
